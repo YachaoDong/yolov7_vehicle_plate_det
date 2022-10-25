@@ -1,0 +1,18 @@
+
+
+# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+train: D:\CodeFiles\server_detection\datasets\service_datasets\train.txt  # 118287 images
+val: D:\CodeFiles\server_detection\datasets\service_datasets\test.txt  # 5000 images
+test: D:\CodeFiles\server_detection\datasets\service_datasets\val.txt  # 20288 of 40670 images, submit to https://competitions.codalab.org/competitions/20794
+
+nc: 13  # number of classes 13
+
+names: ['truck', 'van', 'car', 'slagcar', 'bus', 'fire_truck',
+        'police_car', 'ambulance',  'SUV', 'microbus', 'unknown_vehicle',
+        'plate', 'double_plate']  # class names
+
+nco: 10
+# num: 10
+vehicle_color: ['white', 'siliver', 'grey', 'black', 'red', 'blue', 'yellow', 'green', 'brown', 'others']
+# num: 6
+plate_color: ['blue', 'yellow', 'green', 'white', 'others', 'black']
