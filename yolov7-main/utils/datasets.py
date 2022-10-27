@@ -493,16 +493,16 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                             l = np.concatenate((classes.reshape(-1, 1), segments2boxes(segments)), 1)  # (cls, xywh)
                         l = np.array(l, dtype=np.float32)
                     if len(l):
-                        assert l.shape[1] == 5, 'labels require 5 columns each'
+                        assert l.shape[1] == 5+1, 'labels require 5+1 columns each, include cls_id, color_id, xywh'
                         assert (l >= 0).all(), 'negative labels'
-                        assert (l[:, 1:] <= 1).all(), 'non-normalized or out of bounds coordinate labels'
+                        assert (l[:, 2:] <= 1).all(), 'non-normalized or out of bounds coordinate labels'
                         assert np.unique(l, axis=0).shape[0] == l.shape[0], 'duplicate labels'
                     else:
                         ne += 1  # label empty
-                        l = np.zeros((0, 5), dtype=np.float32)
+                        l = np.zeros((0, 5+1), dtype=np.float32)
                 else:
                     nm += 1  # label missing
-                    l = np.zeros((0, 5), dtype=np.float32)
+                    l = np.zeros((0, 5+1), dtype=np.float32)
                 x[im_file] = [l, shape, segments]
             except Exception as e:
                 nc += 1
@@ -565,7 +565,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
             labels = self.labels[index].copy()
             if labels.size:  # normalized xywh to pixel xyxy format
-                labels[:, 1:] = xywhn2xyxy(labels[:, 1:], ratio[0] * w, ratio[1] * h, padw=pad[0], padh=pad[1])
+                labels[:, 2:] = xywhn2xyxy(labels[:, 2:], ratio[0] * w, ratio[1] * h, padw=pad[0], padh=pad[1])
 
         if self.augment:
             # Augment imagespace
@@ -601,24 +601,24 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
         nL = len(labels)  # number of labels
         if nL:
-            labels[:, 1:5] = xyxy2xywh(labels[:, 1:5])  # convert xyxy to xywh
-            labels[:, [2, 4]] /= img.shape[0]  # normalized height 0-1
-            labels[:, [1, 3]] /= img.shape[1]  # normalized width 0-1
+            labels[:, 2:6] = xyxy2xywh(labels[:, 2:6])  # convert xyxy to xywh
+            labels[:, [3, 5]] /= img.shape[0]  # normalized height 0-1
+            labels[:, [2, 4]] /= img.shape[1]  # normalized width 0-1
 
         if self.augment:
             # flip up-down
             if random.random() < hyp['flipud']:
                 img = np.flipud(img)
                 if nL:
-                    labels[:, 2] = 1 - labels[:, 2]
+                    labels[:, 3] = 1 - labels[:, 3]
 
             # flip left-right
             if random.random() < hyp['fliplr']:
                 img = np.fliplr(img)
                 if nL:
-                    labels[:, 1] = 1 - labels[:, 1]
+                    labels[:, 2] = 1 - labels[:, 2]
 
-        labels_out = torch.zeros((nL, 6))
+        labels_out = torch.zeros((nL, 6+1))
         if nL:
             labels_out[:, 1:] = torch.from_numpy(labels)
 
@@ -738,14 +738,14 @@ def load_mosaic(self, index):
         # Labels
         labels, segments = self.labels[index].copy(), self.segments[index].copy()
         if labels.size:
-            labels[:, 1:] = xywhn2xyxy(labels[:, 1:], w, h, padw, padh)  # normalized xywh to pixel xyxy format
+            labels[:, 2:] = xywhn2xyxy(labels[:, 2:], w, h, padw, padh)  # normalized xywh to pixel xyxy format
             segments = [xyn2xy(x, w, h, padw, padh) for x in segments]
         labels4.append(labels)
         segments4.extend(segments)
 
     # Concat/clip labels
     labels4 = np.concatenate(labels4, 0)
-    for x in (labels4[:, 1:], *segments4):
+    for x in (labels4[:, 2:], *segments4):
         np.clip(x, 0, 2 * s, out=x)  # clip when using random_perspective()
     # img4, labels4 = replicate(img4, labels4)  # replicate
 
@@ -802,7 +802,7 @@ def load_mosaic9(self, index):
         # Labels
         labels, segments = self.labels[index].copy(), self.segments[index].copy()
         if labels.size:
-            labels[:, 1:] = xywhn2xyxy(labels[:, 1:], w, h, padx, pady)  # normalized xywh to pixel xyxy format
+            labels[:, 2:] = xywhn2xyxy(labels[:, 2:], w, h, padx, pady)  # normalized xywh to pixel xyxy format
             segments = [xyn2xy(x, w, h, padx, pady) for x in segments]
         labels9.append(labels)
         segments9.extend(segments)
@@ -817,12 +817,12 @@ def load_mosaic9(self, index):
 
     # Concat/clip labels
     labels9 = np.concatenate(labels9, 0)
-    labels9[:, [1, 3]] -= xc
-    labels9[:, [2, 4]] -= yc
+    labels9[:, [2, 4]] -= xc
+    labels9[:, [3, 5]] -= yc
     c = np.array([xc, yc])  # centers
     segments9 = [x - c for x in segments9]
 
-    for x in (labels9[:, 1:], *segments9):
+    for x in (labels9[:, 2:], *segments9):
         np.clip(x, 0, 2 * s, out=x)  # clip when using random_perspective()
     # img9, labels9 = replicate(img9, labels9)  # replicate
 
@@ -873,14 +873,14 @@ def load_samples(self, index):
         # Labels
         labels, segments = self.labels[index].copy(), self.segments[index].copy()
         if labels.size:
-            labels[:, 1:] = xywhn2xyxy(labels[:, 1:], w, h, padw, padh)  # normalized xywh to pixel xyxy format
+            labels[:, 2:] = xywhn2xyxy(labels[:, 2:], w, h, padw, padh)  # normalized xywh to pixel xyxy format
             segments = [xyn2xy(x, w, h, padw, padh) for x in segments]
         labels4.append(labels)
         segments4.extend(segments)
 
     # Concat/clip labels
     labels4 = np.concatenate(labels4, 0)
-    for x in (labels4[:, 1:], *segments4):
+    for x in (labels4[:, 2:], *segments4):
         np.clip(x, 0, 2 * s, out=x)  # clip when using random_perspective()
     # img4, labels4 = replicate(img4, labels4)  # replicate
 
@@ -899,10 +899,10 @@ def copy_paste(img, labels, segments, probability=0.5):
         im_new = np.zeros(img.shape, np.uint8)
         for j in random.sample(range(n), k=round(probability * n)):
             l, s = labels[j], segments[j]
-            box = w - l[3], l[2], w - l[1], l[4]
-            ioa = bbox_ioa(box, labels[:, 1:5])  # intersection over area
+            box = w - l[4], l[3], w - l[2], l[5]
+            ioa = bbox_ioa(box, labels[:, 2:6])  # intersection over area
             if (ioa < 0.30).all():  # allow 30% obscuration of existing labels
-                labels = np.concatenate((labels, [[l[0], *box]]), 0)
+                labels = np.concatenate((labels, [[l[0], l[1], *box]]), 0)
                 segments.append(np.concatenate((w - s[:, 0:1], s[:, 1:2]), 1))
                 cv2.drawContours(im_new, [segments[j].astype(np.int32)], -1, (255, 255, 255), cv2.FILLED)
 
@@ -942,13 +942,15 @@ def sample_segments(img, labels, segments, probability=0.5):
         h, w, c = img.shape  # height, width, channels
         for j in random.sample(range(n), k=round(probability * n)):
             l, s = labels[j], segments[j]
-            box = l[1].astype(int).clip(0,w-1), l[2].astype(int).clip(0,h-1), l[3].astype(int).clip(0,w-1), l[4].astype(int).clip(0,h-1) 
+            box = l[2].astype(int).clip(0,w-1), l[3].astype(int).clip(0,h-1), l[4].astype(int).clip(0,w-1), l[5].astype(int).clip(0,h-1)
             
             #print(box)
             if (box[2] <= box[0]) or (box[3] <= box[1]):
                 continue
-            
-            sample_labels.append(l[0])
+            # append color id [[cls_id, color_id], [],...]
+            sample_labels.append([l[0], l[1]])
+
+
             
             mask = np.zeros(img.shape, np.uint8)
             
@@ -967,7 +969,7 @@ def sample_segments(img, labels, segments, probability=0.5):
 def replicate(img, labels):
     # Replicate labels
     h, w = img.shape[:2]
-    boxes = labels[:, 1:].astype(int)
+    boxes = labels[:, 2:].astype(int)
     x1, y1, x2, y2 = boxes.T
     s = ((x2 - x1) + (y2 - y1)) / 2  # side length (pixels)
     for i in s.argsort()[:round(s.size * 0.5)]:  # smallest indices
@@ -976,7 +978,7 @@ def replicate(img, labels):
         yc, xc = int(random.uniform(0, h - bh)), int(random.uniform(0, w - bw))  # offset x, y
         x1a, y1a, x2a, y2a = [xc, yc, xc + bw, yc + bh]
         img[y1a:y2a, x1a:x2a] = img[y1b:y2b, x1b:x2b]  # img4[ymin:ymax, xmin:xmax]
-        labels = np.append(labels, [[labels[i, 0], x1a, y1a, x2a, y2a]], axis=0)
+        labels = np.append(labels, [[labels[i, 0], labels[i, 1], x1a, y1a, x2a, y2a]], axis=0)
 
     return img, labels
 
@@ -1082,7 +1084,7 @@ def random_perspective(img, targets=(), segments=(), degrees=10, translate=.1, s
 
         else:  # warp boxes
             xy = np.ones((n * 4, 3))
-            xy[:, :2] = targets[:, [1, 2, 3, 4, 1, 4, 3, 2]].reshape(n * 4, 2)  # x1y1, x2y2, x1y2, x2y1
+            xy[:, :2] = targets[:, [2, 3, 4, 5, 2, 5, 4, 2]].reshape(n * 4, 2)  # x1y1, x2y2, x1y2, x2y1
             xy = xy @ M.T  # transform
             xy = (xy[:, :2] / xy[:, 2:3] if perspective else xy[:, :2]).reshape(n, 8)  # perspective rescale or affine
 
@@ -1096,9 +1098,9 @@ def random_perspective(img, targets=(), segments=(), degrees=10, translate=.1, s
             new[:, [1, 3]] = new[:, [1, 3]].clip(0, height)
 
         # filter candidates
-        i = box_candidates(box1=targets[:, 1:5].T * s, box2=new.T, area_thr=0.01 if use_segments else 0.10)
+        i = box_candidates(box1=targets[:, 2:6].T * s, box2=new.T, area_thr=0.01 if use_segments else 0.10)
         targets = targets[i]
-        targets[:, 1:5] = new[i]
+        targets[:, 2:6] = new[i]
 
     return img, targets
 
@@ -1207,9 +1209,9 @@ def pastein(image, labels, sample_labels, sample_images, sample_masks):
                     #print(temp_crop.shape)
                     box = np.array([xmin, ymin, xmin+r_w, ymin+r_h], dtype=np.float32)
                     if len(labels):
-                        labels = np.concatenate((labels, [[sample_labels[sel_ind], *box]]), 0)
+                        labels = np.concatenate((labels, [[*sample_labels[sel_ind], *box]]), 0)
                     else:
-                        labels = np.array([[sample_labels[sel_ind], *box]])
+                        labels = np.array([[*sample_labels[sel_ind], *box]])
                               
                     image[ymin:ymin+r_h, xmin:xmin+r_w] = temp_crop
 
@@ -1234,9 +1236,10 @@ class Albumentations:
             #logging.info(colorstr('albumentations: ') + ', '.join(f'{x}' for x in self.transform.transforms if x.p))
 
     def __call__(self, im, labels, p=1.0):
+        # TODO:增加color_id，待验证
         if self.transform and random.random() < p:
-            new = self.transform(image=im, bboxes=labels[:, 1:], class_labels=labels[:, 0])  # transformed
-            im, labels = new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
+            new = self.transform(image=im, bboxes=labels[:, 2:], class_labels=labels[:, 0:2])  # transformed
+            im, labels = new['image'], np.array([[*c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
         return im, labels
 
 

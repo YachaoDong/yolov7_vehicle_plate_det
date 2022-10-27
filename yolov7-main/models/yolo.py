@@ -322,6 +322,7 @@ class IAuxDetect(nn.Module):
     def __init__(self, nc=13+10, anchors=(), ch=()):  # detection layer
         super(IAuxDetect, self).__init__()
         self.nc = nc  # number of classes
+
         self.no = nc + 5  # number of outputs per anchor
         self.nl = len(anchors)  # number of detection layers
         self.na = len(anchors[0]) // 2  # number of anchors
