@@ -106,13 +106,14 @@ def output_to_target(output):
     # Convert model output to target format [batch_id, class_id, x, y, w, h, conf]
     targets = []
     for i, o in enumerate(output):
-        for *box, conf, cls in o.cpu().numpy():
-            targets.append([i, cls, *list(*xyxy2xywh(np.array(box)[None])), conf])
+        for *box, conf, cls, color_cls in o.cpu().numpy():
+            targets.append([i, cls, color_cls, *list(*xyxy2xywh(np.array(box)[None])), conf])
     return np.array(targets)
 
 
 def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max_size=640, max_subplots=16):
     # Plot image grid with labels
+    color_names = ['white', 'siliver', 'grey', 'black', 'red', 'blue', 'yellow', 'green', 'brown', 'others']
 
     if isinstance(images, torch.Tensor):
         images = images.cpu().float().numpy()
@@ -151,10 +152,13 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
         mosaic[block_y:block_y + h, block_x:block_x + w, :] = img
         if len(targets) > 0:
             image_targets = targets[targets[:, 0] == i]
-            boxes = xywh2xyxy(image_targets[:, 2:6]).T
+            boxes = xywh2xyxy(image_targets[:, 3:7]).T
             classes = image_targets[:, 1].astype('int')
-            labels = image_targets.shape[1] == 6  # labels if no conf column
-            conf = None if labels else image_targets[:, 6]  # check for confidence presence (label vs pred)
+
+            color_classes = image_targets[:, 2].astype('int')
+
+            labels = image_targets.shape[1] == 7  # labels if no conf column
+            conf = None if labels else image_targets[:, 7]  # check for confidence presence (label vs pred)
 
             if boxes.shape[1]:
                 if boxes.max() <= 1.01:  # if normalized with tolerance 0.01
@@ -168,8 +172,12 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
                 cls = int(classes[j])
                 color = colors[cls % len(colors)]
                 cls = names[cls] if names else cls
+                # vehicle color
+                color_cls = int(color_classes[j])
+                color_cls = color_names[color_cls] if color_names else color_cls
+
                 if labels or conf[j] > 0.25:  # 0.25 conf thresh
-                    label = '%s' % cls if labels else '%s %.1f' % (cls, conf[j])
+                    label = '%s  %s' % (cls, color_cls) if labels else '%s  %s %.1f' % (cls, color_cls, conf[j])
                     plot_one_box(box, mosaic, label=label, color=color, line_thickness=tl)
 
         # Draw image filename labels

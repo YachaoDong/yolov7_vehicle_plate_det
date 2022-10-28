@@ -28,6 +28,7 @@ def ap_per_class(tp, conf, pred_cls, target_cls, v5_metric=False, plot=False, sa
     # Returns
         The average precision as computed in py-faster-rcnn.
     """
+    # (correct, conf, pcls, tcls)
 
     # Sort by objectness
     i = np.argsort(-conf)

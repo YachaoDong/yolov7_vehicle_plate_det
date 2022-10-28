@@ -606,14 +606,14 @@ def box_diou(box1, box2, eps: float = 1e-7):
 
 
 def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,
-                        labels=()):
+                        labels=(), nco=10):
     """Runs Non-Maximum Suppression (NMS) on inference results
 
     Returns:
          list of detections, on (n,6) tensor per image [xyxy, conf, cls]
     """
 
-    nc = prediction.shape[2] - 5  # number of classes
+    nc = prediction.shape[2] - 5 - nco  # number of classes
     xc = prediction[..., 4] > conf_thres  # candidates
 
     # Settings
@@ -626,7 +626,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
     merge = False  # use merge-NMS
 
     t = time.time()
-    output = [torch.zeros((0, 6), device=prediction.device)] * prediction.shape[0]
+    output = [torch.zeros((0, 7), device=prediction.device)] * prediction.shape[0]
     for xi, x in enumerate(prediction):  # image index, image inference
         # Apply constraints
         # x[((x[..., 2:4] < min_wh) | (x[..., 2:4] > max_wh)).any(1), 4] = 0  # width-height
@@ -635,10 +635,11 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
         # Cat apriori labels if autolabelling
         if labels and len(labels[xi]):
             l = labels[xi]
-            v = torch.zeros((len(l), nc + 5), device=x.device)
-            v[:, :4] = l[:, 1:5]  # box
+            v = torch.zeros((len(l), nc + 5 + nco), device=x.device)
+            v[:, :4] = l[:, 2:6]  # box
             v[:, 4] = 1.0  # conf
             v[range(len(l)), l[:, 0].long() + 5] = 1.0  # cls
+            v[range(len(l)), l[:, 1].long() + 5 + nc] = 1.0  # color
             x = torch.cat((x, v), 0)
 
         # If none remain process next image
@@ -660,8 +661,11 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
             i, j = (x[:, 5:] > conf_thres).nonzero(as_tuple=False).T
             x = torch.cat((box[i], x[i, j + 5, None], j[:, None].float()), 1)
         else:  # best class only
-            conf, j = x[:, 5:].max(1, keepdim=True)
-            x = torch.cat((box, conf, j.float()), 1)[conf.view(-1) > conf_thres]
+            conf, j = x[:, 5:nc+5].max(1, keepdim=True)
+            # color
+            conf_color, j_color = x[:, nc + 5:nc + 5 + nco].max(1, keepdim=True)
+            # cls 过滤 and color cls 过滤
+            x = torch.cat((box, conf, j.float(), j_color.float()), 1)[(conf.view(-1) > conf_thres) and (conf_color.view(-1) > conf_thres)]
 
         # Filter by class
         if classes is not None:

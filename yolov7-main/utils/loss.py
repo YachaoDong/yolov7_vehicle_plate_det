@@ -418,10 +418,10 @@ class APLoss(torch.autograd.Function):
         g1, =ctx.saved_tensors
         return g1*out_grad1, None, None
 
-
+# add color loss
 class ComputeLoss:
     # Compute losses
-    def __init__(self, model, autobalance=False):
+    def __init__(self, model, autobalance=False, nco=10):
         super(ComputeLoss, self).__init__()
         device = next(model.parameters()).device  # get model device
         h = model.hyp  # hyperparameters
@@ -429,6 +429,8 @@ class ComputeLoss:
         # Define criteria
         BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['cls_pw']], device=device))
         BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device))
+        # color loss
+        BCEcolor = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['cls_pw']], device=device))
 
         # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
         self.cp, self.cn = smooth_BCE(eps=h.get('label_smoothing', 0.0))  # positive, negative BCE targets
@@ -437,6 +439,8 @@ class ComputeLoss:
         g = h['fl_gamma']  # focal loss gamma
         if g > 0:
             BCEcls, BCEobj = FocalLoss(BCEcls, g), FocalLoss(BCEobj, g)
+            # color loss
+            BCEcolor = FocalLoss(BCEcolor, g)
 
         det = model.module.model[-1] if is_parallel(model) else model.model[-1]  # Detect() module
         self.balance = {3: [4.0, 1.0, 0.4]}.get(det.nl, [4.0, 1.0, 0.25, 0.06, .02])  # P3-P7
@@ -444,13 +448,19 @@ class ComputeLoss:
         #self.balance = {3: [4.0, 1.0, 0.4]}.get(det.nl, [4.0, 1.0, 0.5, 0.4, .1])  # P3-P7
         self.ssi = list(det.stride).index(16) if autobalance else 0  # stride 16 index
         self.BCEcls, self.BCEobj, self.gr, self.hyp, self.autobalance = BCEcls, BCEobj, model.gr, h, autobalance
+        # color loss
+        self.BCEcolor = BCEcolor
         for k in 'na', 'nc', 'nl', 'anchors':
             setattr(self, k, getattr(det, k))
+        self.nco = nco
 
     def __call__(self, p, targets):  # predictions, targets, model
         device = targets.device
         lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
-        tcls, tbox, indices, anchors = self.build_targets(p, targets)  # targets
+        # color loss
+        lcolor = torch.zeros(1, device=device)
+
+        tcls, tcolor, tbox, indices, anchors = self.build_targets(p, targets)  # targets
 
         # Losses
         for i, pi in enumerate(p):  # layer index, layer predictions
@@ -473,10 +483,17 @@ class ComputeLoss:
 
                 # Classification
                 if self.nc > 1:  # cls loss (only if multiple classes)
-                    t = torch.full_like(ps[:, 5:], self.cn, device=device)  # targets
+                    t = torch.full_like(ps[:, 5:(5+self.nc)], self.cn, device=device)  # targets
                     t[range(n), tcls[i]] = self.cp
                     #t[t==self.cp] = iou.detach().clamp(0).type(t.dtype)
-                    lcls += self.BCEcls(ps[:, 5:], t)  # BCE
+                    lcls += self.BCEcls(ps[:, 5:(5+self.nc)], t)  # BCE
+
+                    # color loss
+                    t_ = torch.full_like(ps[:, (5 + self.nc):], self.cn, device=device)  # targets
+                    t_[range(n), tcolor[i]] = self.cp
+                    # t[t==self.cp] = iou.detach().clamp(0).type(t.dtype)
+                    tcolor += self.BCEcls(ps[:, (5 + self.nc):], t_)  # BCE
+
 
                 # Append targets to text file
                 # with open('targets.txt', 'a') as file:
@@ -492,16 +509,22 @@ class ComputeLoss:
         lbox *= self.hyp['box']
         lobj *= self.hyp['obj']
         lcls *= self.hyp['cls']
+        # color
+        lcolor *= self.hyp['color']
+
         bs = tobj.shape[0]  # batch size
 
-        loss = lbox + lobj + lcls
-        return loss * bs, torch.cat((lbox, lobj, lcls, loss)).detach()
+        loss = lbox + lobj + lcls + lcolor
+        return loss * bs, torch.cat((lbox, lobj, lcls, lcolor, loss)).detach()
 
     def build_targets(self, p, targets):
         # Build targets for compute_loss(), input targets(image,class,x,y,w,h)
         na, nt = self.na, targets.shape[0]  # number of anchors, targets
         tcls, tbox, indices, anch = [], [], [], []
-        gain = torch.ones(7, device=targets.device).long()  # normalized to gridspace gain
+        # clolor
+        tcolor = []
+
+        gain = torch.ones(7+1, device=targets.device).long()  # normalized to gridspace gain
         ai = torch.arange(na, device=targets.device).float().view(na, 1).repeat(1, nt)  # same as .repeat_interleave(nt)
         targets = torch.cat((targets.repeat(na, 1, 1), ai[:, :, None]), 2)  # append anchor indices
 
@@ -513,20 +536,20 @@ class ComputeLoss:
 
         for i in range(self.nl):
             anchors = self.anchors[i]
-            gain[2:6] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
+            gain[3:7] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
 
             # Match targets to anchors
             t = targets * gain
             if nt:
                 # Matches
-                r = t[:, :, 4:6] / anchors[:, None]  # wh ratio
+                r = t[:, :, 5:7] / anchors[:, None]  # wh ratio
                 j = torch.max(r, 1. / r).max(2)[0] < self.hyp['anchor_t']  # compare
                 # j = wh_iou(anchors, t[:, 4:6]) > model.hyp['iou_t']  # iou(3,n)=wh_iou(anchors(3,2), gwh(n,2))
                 t = t[j]  # filter
 
                 # Offsets
-                gxy = t[:, 2:4]  # grid xy
-                gxi = gain[[2, 3]] - gxy  # inverse
+                gxy = t[:, 3:5]  # grid xy
+                gxi = gain[[3, 4]] - gxy  # inverse
                 j, k = ((gxy % 1. < g) & (gxy > 1.)).T
                 l, m = ((gxi % 1. < g) & (gxi > 1.)).T
                 j = torch.stack((torch.ones_like(j), j, k, l, m))
@@ -538,19 +561,21 @@ class ComputeLoss:
 
             # Define
             b, c = t[:, :2].long().T  # image, class
-            gxy = t[:, 2:4]  # grid xy
-            gwh = t[:, 4:6]  # grid wh
+            c_color = t[:, 2].long().T  # class color
+            gxy = t[:, 3:5]  # grid xy
+            gwh = t[:, 5:7]  # grid wh
             gij = (gxy - offsets).long()
             gi, gj = gij.T  # grid xy indices
 
             # Append
-            a = t[:, 6].long()  # anchor indices
-            indices.append((b, a, gj.clamp_(0, gain[3] - 1), gi.clamp_(0, gain[2] - 1)))  # image, anchor, grid indices
+            a = t[:, 7].long()  # anchor indices
+            indices.append((b, a, gj.clamp_(0, gain[4] - 1), gi.clamp_(0, gain[3] - 1)))  # image, anchor, grid indices
             tbox.append(torch.cat((gxy - gij, gwh), 1))  # box
             anch.append(anchors[a])  # anchors
             tcls.append(c)  # class
+            tcolor.append(c_color)  # class
 
-        return tcls, tbox, indices, anch
+        return tcls, tcolor, tbox, indices, anch
 
 # 增加 color loss
 class ComputeLossOTA:
