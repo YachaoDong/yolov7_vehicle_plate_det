@@ -657,6 +657,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
         box = xywh2xyxy(x[:, :4])
 
         # Detections matrix nx6 (xyxy, conf, cls)
+        multi_label = False
         if multi_label:
             i, j = (x[:, 5:] > conf_thres).nonzero(as_tuple=False).T
             x = torch.cat((box[i], x[i, j + 5, None], j[:, None].float()), 1)
@@ -665,7 +666,14 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
             # color
             conf_color, j_color = x[:, nc + 5:nc + 5 + nco].max(1, keepdim=True)
             # cls 过滤 and color cls 过滤
-            x = torch.cat((box, conf, j.float(), j_color.float()), 1)[(conf.view(-1) > conf_thres) and (conf_color.view(-1) > conf_thres)]
+            # x = torch.cat((box, conf, j.float(), j_color.float()), 1)[(conf.view(-1) > conf_thres) and (conf_color.view(-1) > conf_thres)]
+
+            # cls 过滤
+            x = torch.cat((box, conf, j.float(), j_color.float()), 1)[conf.view(-1) > conf_thres]
+            # color 过滤
+            conf_color = conf_color[conf.view(-1) > conf_thres]
+            x = x[conf_color.view(-1) > conf_thres]
+
 
         # Filter by class
         if classes is not None:

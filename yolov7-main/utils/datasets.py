@@ -618,6 +618,29 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 if nL:
                     labels[:, 2] = 1 - labels[:, 2]
 
+        # --------  画图 检查坐标是否转换正确 ------- #
+        plotFlag = False
+        if plotFlag:
+            from utils.plots import plot_one_box
+            import matplotlib
+            matplotlib.use('TkAgg')
+            import matplotlib.pyplot as plt
+            import matplotlib.patches as patches
+            plt.figure(figsize=(10, 10))
+
+            plt.imshow(img[:, :, ::-1])
+            # plot box
+            labels_plot = labels
+            labels_plot = xywhn2xyxy(labels_plot[:, 2:6], w=img.shape[1], h=img.shape[0])
+
+            img_ = np.ascontiguousarray(img)
+            for label_plot in labels_plot:
+                plot_one_box(label_plot, img_, color=(255, 0, 0), label=None, line_thickness=3)
+            cv2.imshow('box', img_)
+            cv2.waitKey(0)  # 1 millisecond
+        # --------  画图 检查坐标是否转换正确 ------- #
+
+
         labels_out = torch.zeros((nL, 6+1))
         if nL:
             labels_out[:, 1:] = torch.from_numpy(labels)
@@ -1084,7 +1107,7 @@ def random_perspective(img, targets=(), segments=(), degrees=10, translate=.1, s
 
         else:  # warp boxes
             xy = np.ones((n * 4, 3))
-            xy[:, :2] = targets[:, [2, 3, 4, 5, 2, 5, 4, 2]].reshape(n * 4, 2)  # x1y1, x2y2, x1y2, x2y1
+            xy[:, :2] = targets[:, [2, 3, 4, 5, 2, 5, 4, 3]].reshape(n * 4, 2)  # x1y1, x2y2, x1y2, x2y1
             xy = xy @ M.T  # transform
             xy = (xy[:, :2] / xy[:, 2:3] if perspective else xy[:, :2]).reshape(n, 8)  # perspective rescale or affine
 

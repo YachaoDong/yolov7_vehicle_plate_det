@@ -450,9 +450,10 @@ class ComputeLoss:
         self.BCEcls, self.BCEobj, self.gr, self.hyp, self.autobalance = BCEcls, BCEobj, model.gr, h, autobalance
         # color loss
         self.BCEcolor = BCEcolor
-        for k in 'na', 'nc', 'nl', 'anchors':
+        for k in 'na', 'nc', 'nl', 'anchors':  # 这里的self.nc=23 cls+color
             setattr(self, k, getattr(det, k))
         self.nco = nco
+        self.nc = self.nc - self.nco
 
     def __call__(self, p, targets):  # predictions, targets, model
         device = targets.device
@@ -492,7 +493,7 @@ class ComputeLoss:
                     t_ = torch.full_like(ps[:, (5 + self.nc):], self.cn, device=device)  # targets
                     t_[range(n), tcolor[i]] = self.cp
                     # t[t==self.cp] = iou.detach().clamp(0).type(t.dtype)
-                    tcolor += self.BCEcls(ps[:, (5 + self.nc):], t_)  # BCE
+                    lcolor += self.BCEcolor(ps[:, (5 + self.nc):], t_)  # BCE
 
 
                 # Append targets to text file
@@ -610,6 +611,7 @@ class ComputeLossOTA:
         for k in 'na', 'nc', 'nl', 'anchors', 'stride':
             setattr(self, k, getattr(det, k))
         self.nco = nco
+        self.nc = self.nc - self.nco
 
     def __call__(self, p, targets, imgs):  # predictions, targets, model   
         device = targets.device
@@ -659,7 +661,7 @@ class ComputeLossOTA:
                     # color loss
                     t_ = torch.full_like(ps[:, (5 + self.nc):], self.cn, device=device)  # targets
                     t_[range(n), selected_tcolor] = self.cp
-                    lcolor += self.BCEcls(ps[:, (5 + self.nc):], t_)  # BCE
+                    lcolor += self.BCEcolor(ps[:, (5 + self.nc):], t_)  # BCE
 
 
                 # Append targets to text file
@@ -796,19 +798,19 @@ class ComputeLossOTA:
                 p_cls.float().unsqueeze(0).repeat(num_gt, 1, 1).sigmoid_()
                 * p_obj.unsqueeze(0).repeat(num_gt, 1, 1).sigmoid_()
             )
-            # y: [num_gt, ,nc+nco]
+            # y: [num_gt, ,nc+nco] [12, 121, 23]
             y = cls_preds_.sqrt_()
-            print('y.shape:', y.shape)
+            # print('y.shape:', y.shape)
             # 分成cls 和 color
-            y_color = y[:, self.nc:]
-            y = y[:, :self.nc]
+            y_color = y[..., self.nc:]
+            y = y[..., :self.nc]
 
             # pair_wise_cls_loss:
             # y: [num_gt, ,nc+nco]  gt_cls_per_image: [img_idx, n_pred, nc]
             pair_wise_cls_loss = F.binary_cross_entropy_with_logits(
                torch.log(y/(1-y)), gt_cls_per_image, reduction="none"
             ).sum(-1)
-            print('pair_wise_cls_loss.shape:', pair_wise_cls_loss.shape)
+            # print('pair_wise_cls_loss.shape:', pair_wise_cls_loss.shape)
             del cls_preds_
 
 
@@ -826,7 +828,7 @@ class ComputeLossOTA:
             else:
                 self.hyp['pair_wise_color_loss'] = 0
                 pair_wise_color_loss = 0
-            print('pair_wise_color_loss.shape:', pair_wise_color_loss.shape)
+            # print('pair_wise_color_loss.shape:', pair_wise_color_loss.shape)
             #  ----- 计算pair_wise_color_loss ------ #
 
             # pair_wise_iou_loss: [n_gt, n_pred]
@@ -836,7 +838,7 @@ class ComputeLossOTA:
                 + self.hyp['pair_wise_color_loss'] * pair_wise_color_loss
                 + 3.0 * pair_wise_iou_loss
             )
-            print('cost.shape:', cost.shape)
+            # print('cost.shape:', cost.shape)
             # matching_matrix: [n_gt, n_pred]
             matching_matrix = torch.zeros_like(cost)
 
