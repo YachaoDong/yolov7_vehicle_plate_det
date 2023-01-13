@@ -1,0 +1,248 @@
+### C++ ###
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+### C ###
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+## python
+*.py[cod]
+*$py.class
+__pycache__/
+
+.idea
+*.jpg
+*.png
+### Video ###
+*.3g2
+*.3gp
+*.asf
+*.asx
+*.avi
+*.flv
+*.mov
+*.mp4
+*.mpg
+*.rm
+*.swf
+*.vob
+*.wmv
+
+
+# Created by https://www.gitignore.io/api/images
+# Edit at https://www.gitignore.io/?templates=images
+
+### Images ###
+# JPEG
+*.jpg
+*.jpeg
+*.jpe
+*.jif
+*.jfif
+*.jfi
+
+# JPEG 2000
+*.jp2
+*.j2k
+*.jpf
+*.jpx
+*.jpm
+*.mj2
+
+# JPEG XR
+*.jxr
+*.hdp
+*.wdp
+
+# Graphics Interchange Format
+*.gif
+
+# RAW
+*.raw
+
+# Web P
+*.webp
+
+# Portable Network Graphics
+*.png
+
+# Animated Portable Network Graphics
+*.apng
+
+# Multiple-image Network Graphics
+*.mng
+
+# Tagged Image File Format
+*.tiff
+*.tif
+
+# Scalable Vector Graphics
+*.svg
+*.svgz
+
+# Portable Document Format
+*.pdf
+
+# X BitMap
+*.xbm
+
+# BMP
+*.bmp
+*.dib
+
+# ICO
+*.ico
+
+# 3D Images
+*.3dm
+*.max
+
+# End of https://www.gitignore.io/api/images
+
+core.*#
+.ipynb_checkpoints/
+
+1201b053b3af12909569d24998691a7b961874
+d7e6c80cb487886469b2a1002837f2d71372df
+model.dat
+NotoSansCJKsc-Regular.otf
+char-rnn.wts
+googlenet.caffemodel
+libcryptopp.a
+libcudnn_adv_infer.so.8.4.1
+libcudnn_adv_infer_static.a
+libcudnn_adv_train.so.8.4.1
+libcudnn_adv_train_static.a
+libcudnn_cnn_infer.so.8.4.1
+libcudnn_cnn_infer_static.a
+libcudnn_cnn_train.so.8.4.1
+libcudnn_cnn_train_static.a
+libcudnn_ops_infer.so.8.4.1
+libcudnn_ops_infer_static.a
+libcudnn_ops_train.so.8.4.1
+libcudnn_ops_train_static.a
+libmkldnn.so.0
+libmklml_intel.so
+libnvinfer_builder_resource.so.8.4.1
+libnvinfer_plugin.so.8.4.1
+libnvinfer_plugin_static.a
+libnvinfer.so.8.4.1
+libnvinfer_static.a
+libnvparsers_static.a
+libonnxruntime.so.1.10.0
+libpaddle_inference.a
+libpaddle_inference.so
+model-20080.data-00000-of-00001
+ResNet50_fp32.caffemodel
+resnet50-infer-5.uff
+ResNet50.onnx
+deepsort.cpp.o
+libyolodet.so
+builtin_op_importers.cpp.o
+zmq_u.cpp.o
+libprotobuf.a
+libprotobuf-lite.a
+libprotobuf.so.22.0.4
+libprotoc.a
+libprotoc.so.22.0.4
+paddle_inference.tgz
+cudnn-11.2-linux-x64-v8.1.1.33.tgz
+libcudnn_adv_infer.so.8.1.1
+libcudnn_adv_train.so.8.1.1
+libcudnn_cnn_infer.so.8.1.1
+libcudnn_cnn_train.so.8.1.1
+libcudnn_ops_infer.so.8.1.1
+libcudnn_ops_train.so.8.1.1
+libcudnn_static.a
+libonnxruntime.so.1.11.1
+pack-b4d34e2a65fd2ab9944b44f63e41517411948f6c.pack
+pack-21a72aac05fe3b6c8ced1e7af5cdb0034c8e0ee7.pack
+pack-192e586ca77215b4089287a1636523d45315c293.pack
+pack-8ea94f914d1b14dd658dd48c080b031b3a79136a.pack
+my_dett.FP32.trtmodel
+libprotobuf.so
+libprotobuf.so.22
+libprotoc.so
+libprotoc.so.22
+pack-15cd2cb5a566ca4ccf78007052f6201a6175d3e4.pack
+libdnnl.so.2
+core.24337
+core.24458
+core.28807
+ev_sdk.zip
+deploy_yolov7.onnx
+deploy_yolov7.trt
+best.onnx
+last.onnx
+best.trt
+last.trt

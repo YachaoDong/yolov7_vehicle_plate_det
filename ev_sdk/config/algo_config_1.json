@@ -1,0 +1,63 @@
+{
+    "gpu_id": 0,
+    
+    "det_engine_file": "/project/train/models/exp/weights/deploy_yolov7_best.onnx",
+    "conf_thresh": 0.25,
+    "nms_thresh": 0.45,
+    
+    "rec_model_dir": "/project/train/models/paddle_infer",
+    "rec_use_gpu": true,
+    "rec_gpu_mem": 4000,
+    "rec_cpu_math_library_num_threads": 8,
+    "rec_use_mkldnn": true,
+    "rec_char_dict_path": "/usr/local/ev_sdk/src/paddle_src/src/plate_dict.txt",
+    "rec_precision": "fp32",
+    "rec_batch_num": 1,
+    "rec_img_h": 32,
+    "rec_img_w": 100,
+    
+    "draw_roi_area": false,
+    "roi_type": "polygon_1",
+    "polygon_1": ["POLYGON((0 0, 1 0, 1 1, 0 1))"],
+
+    "roi_color": [255, 255, 0, 0.7],
+    "roi_line_thickness": 4,
+    "roi_fill": false,
+    "draw_result": false,
+    "draw_confidence": false,
+    
+    "language": "en",
+    
+    "alert_count_threshold": 3,
+    "vehicle_class_alert": false,
+    "vehicle_color_alert": false,
+    "plate_ocr_alert": true,
+    "plate_color_alert": true,
+    "cid":"Abc12345",
+    
+    "alert_vehicle_exclude": [],
+    "alert_vehicle_color_exclude": [],
+    "alert_plate_chinese_exclude": [],
+    "alert_plate_color_exclude": [],
+    
+
+    "target_rect_color": [0, 0, 255, 0],
+    "object_rect_line_thickness": 3,
+    "object_text_color": [255, 255, 255, 0],
+    "object_text_bg_color": [50, 50, 50, 0],
+    "object_text_size": 20,
+    
+    "mark_text_en": ["truck", "van", "car", "slagcar", "bus", "fire_truck","police_car", "ambulance",  "SUV", "microbus", "unknown_vehicle", "plate", "double_plate"],
+    "mark_text_zh": ["卡车","小型货车","小汽车、轿车、跑车等四轮小汽车","渣土车","公共汽车","消防车","警车","救护车","SUV、商务车等四轮小汽车","面包车","其它未知类型车辆","单层车牌","双层车牌"],
+    
+    "mark_det_color_en": ["white", "siliver", "grey", "black", "red", "blue", "yellow", "green", "brown", "others"],
+    "mark_det_color_zh": ["白色","银色","灰色","黑色","红色","蓝色","黄色","绿色","棕色","其它颜色"],
+    
+    "draw_warning_text": false,
+    "warning_text_en": "WARNING! WARNING!",
+    "warning_text_zh": "警告!",
+    "warning_text_size": 30,
+    "warning_text_color": [255, 255, 255, 0],
+    "warning_text_bg_color": [0, 0, 200, 0],
+    "warning_text_left_top": [0, 0]
+}

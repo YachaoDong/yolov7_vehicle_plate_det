@@ -1,0 +1,26 @@
+          usage:
+            -h  --help        show help information
+            
+            
+            -f  --function    test function for     
+                              1.ji_calc_image            调用输入单张图片
+                              2.ji_calc_image_asyn       
+                              3.ji_destroy_predictor 调用算法实例创建释放接口
+                              4.ji_thread
+                              5.ji_get_version
+                              6.ji_insert_face
+                              7.ji_delete_face
+            -i  --infile      source file     输入图像，多张图像 ，隔开
+            -a  --args        for example roi    -i是通过ji_calc_iamge的args参数传递.
+            -u  --args        test ji_update_config 通过ji_update_config接口单独传递,
+            -o  --outfile     result file              输出结果文件
+            -r  --repeat      number of repetitions. default: 1
+                              <= 0 represents an unlimited number of times
+                              for example: -r 100
+                              
+                              
+                              
+                               /project/ev_sdk/test/build/test-ji-api -f 1 -i /project/inputs/vp.jpeg -o /project/outputs/output.jpeg
+                               
+                               
+                               /project/ev_sdk/test/build/test-ji-api -f 1 -i /project/outputs/vehicle.mp4 -o /project/outputs/test_result.mp4 
